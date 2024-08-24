@@ -4,7 +4,7 @@ let cors = require("cors");
 let expressWs = require("express-ws");
 
 let {
-	PORT = "3678",
+	PORT = "3789",
 } = process.env;
 
 (async function() {	
@@ -87,7 +87,7 @@ let {
 					key,
 					isJson,
 					data: isJson ? req.body : req.rawBody,
-					headers: displayHeaders,
+					headers,
 				},
 			}));
 		}
