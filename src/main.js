@@ -1,24 +1,22 @@
-let http = require("http");
 let express = require("express");
 let bodyParser = require("body-parser");
 let cors = require("cors");
-let wsServer = require("./wsServer");
-let relay = require("./relay");
+let expressWs = require("express-ws");
 
 let {
 	PORT = "3678",
-	WS_PORT = "3789",
 } = process.env;
 
 (async function() {	
 	let app = express();
+	let clientsByKey = {};
 	
-	app.clientsByKey = {};
+	let ws = expressWs(app);
 	
-	wsServer(app, Number(WS_PORT));
+	// remove default EventEmitter limit
+	ws.getWss().setMaxListeners(0);
 	
 	app.enable("trust proxy");
-	
 	app.use(cors());
 	
 	function saveRawBody(req, res, buffer, encoding) {
@@ -47,7 +45,55 @@ let {
 		verify: saveRawBody,
 	}));
 	
-	relay(app);
+	app.ws("/ws/:key", function(ws, req) {
+		let {key} = req.params;
+		
+		if (!clientsByKey[key]) {
+			clientsByKey[key] = new Set();
+		}
+		
+		clientsByKey[key].add(ws);
+		
+		ws.on("close", function() {
+			if (clientsByKey[key]) {
+				clientsByKey[key].delete(ws);
+				
+				if (clientsByKey[key].size === 0) {
+					delete clientsByKey[key];
+				}
+			}
+		});
+	});
+	
+	app.post("/print/:key", function(req, res) {
+		let {key} = req.params;
+		let {headers} = req;
+		let wsClients = clientsByKey[key];
+		
+		if (!wsClients) {
+			return res.json(null);
+		}
+		
+		let {
+			"content-type": contentType,
+		} = headers;
+		
+		let isJson = contentType === "application/json";
+		
+		for (let ws of wsClients) {
+			ws.send(JSON.stringify({
+				type: "log",
+				data: {
+					key,
+					isJson,
+					data: isJson ? req.body : req.rawBody,
+					headers: displayHeaders,
+				},
+			}));
+		}
+		
+		res.json(null);
+	});
 	
 	app.use(function(req, res) {
 		res.status(404);
@@ -60,5 +106,5 @@ let {
 		res.send("500");
 	});
 
-	http.createServer(app).listen(Number(PORT));
+	app.listen(Number(PORT));
 })();
