@@ -95,6 +95,8 @@ let {
 		res.json(null);
 	});
 	
+	app.use(express.static(__dirname + "/../../tmwuc/dist"));
+	
 	app.use(function(req, res) {
 		res.status(404);
 		res.send("404");
