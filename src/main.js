@@ -95,7 +95,7 @@ let {
 		res.json(null);
 	});
 	
-	app.use(express.static(__dirname + "/../../tmwuc/dist"));
+	app.use(express.static(process.env.HOME + "/apps/tmwuc/prod/dist"));
 	
 	app.use(function(req, res) {
 		res.status(404);
