@@ -1,7 +1,7 @@
 module.exports = {
 	apps: [
 		{
-			name: "relay-prod",
+			name: "tmwuc-relay-prod",
 			script: "src/main.js",
 		},
 	],
