@@ -5,6 +5,7 @@ let expressWs = require("express-ws");
 
 let {
 	PORT = "3789",
+	SERVE_FRONTEND_STATIC = null,
 } = process.env;
 
 (async function() {	
@@ -65,9 +66,13 @@ let {
 		});
 	});
 	
-	app.post("/print/:key", function(req, res) {
+	let printRouter = express.Router({
+		mergeParams: true,
+	});
+	
+	app.use("/print/:key", function(req, res) {
 		let {key} = req.params;
-		let {headers} = req;
+		let {path, headers} = req;
 		let wsClients = clientsByKey[key];
 		
 		if (!wsClients) {
@@ -85,6 +90,7 @@ let {
 				type: "log",
 				data: {
 					key,
+					path, // will be / if no path given after the key
 					isJson,
 					data: isJson ? req.body : req.rawBody,
 					headers,
@@ -95,7 +101,9 @@ let {
 		res.json(null);
 	});
 	
-	app.use(express.static(process.env.HOME + "/apps/tmwuc/prod/dist"));
+	if (SERVE_FRONTEND_STATIC) {
+		app.use(express.static(SERVE_FRONTEND_STATIC));
+	}
 	
 	app.use(function(req, res) {
 		res.status(404);
